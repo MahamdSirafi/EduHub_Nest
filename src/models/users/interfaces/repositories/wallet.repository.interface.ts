@@ -1,5 +1,6 @@
-import { Wallet } from '../../entities/wallet.entity';
+import { UserWallet } from '../../entities/wallet.entity';
 
 export interface IWalletRepository {
-  create(): Wallet;
+  create(): UserWallet;
+  deposit(id: string, cost: number): Promise<UserWallet>;
 }

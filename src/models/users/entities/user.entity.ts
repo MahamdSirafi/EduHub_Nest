@@ -15,7 +15,8 @@ import { Role } from '../../roles';
 import { UserPhoto } from './user-photo.entity';
 import * as crypto from 'crypto';
 import { ApiProperty } from '@nestjs/swagger';
-import { Wallet } from './wallet.entity';
+import { UserWallet } from './wallet.entity';
+import { Apply } from '../../applies';
 
 @Entity({ name: 'users' })
 export class User extends BasePerson {
@@ -29,13 +30,20 @@ export class User extends BasePerson {
   @Column()
   roleId: string;
 
-  @ApiProperty({ type: Wallet })
+  @ApiProperty({ type: UserWallet })
   @Expose({ groups: [GROUPS.USER] })
-  @OneToOne(() => Wallet, (wallet) => wallet.user, {
+  @OneToOne(() => UserWallet, (wallet) => wallet.user, {
     onDelete: 'CASCADE',
     cascade: true,
   })
-  wallet: Wallet;
+  wallet: UserWallet;
+
+  @Exclude()
+  @OneToMany(() => Apply, (apply) => apply.user, {
+    cascade: true,
+    eager: true,
+  })
+  applies: Apply[];
 
   @Exclude()
   @OneToMany(() => UserPhoto, (userPhoto) => userPhoto.user, {

@@ -13,7 +13,7 @@ import { Role } from '../../roles';
 import { TeacherPhoto } from './teacher-photo.entity';
 import * as crypto from 'crypto';
 import { ApiProperty } from '@nestjs/swagger';
-import { Wallet } from './wallet.entity';
+import { TeacherWallet } from './wallet.entity';
 import { Course } from '../../courses';
 
 @Entity({ name: 'teachers' })
@@ -27,12 +27,12 @@ export class Teacher extends BasePerson {
   @Column()
   roleId: string;
 
-  @ApiProperty({ type: Wallet })
-  @OneToOne(() => Wallet, (wallet) => wallet.teacher, {
+  @ApiProperty({ type: TeacherWallet })
+  @OneToOne(() => TeacherWallet, (wallet) => wallet.teacher, {
     onDelete: 'CASCADE',
     cascade: true,
   })
-  wallet: Wallet;
+  wallet: TeacherWallet;
 
   @Exclude()
   @OneToMany(() => Course, (course) => course.teacher, {

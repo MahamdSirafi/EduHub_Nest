@@ -1,10 +1,10 @@
 import { Module, Provider } from '@nestjs/common';
 import { TeacherRepository } from './repositories/teacher.repository';
 import { TeacherPhotosRepository } from './repositories/teacher-photos.repository';
-import { WalletRepository } from './repositories/wallet.repository';
+import { WalleTRepository } from './repositories/wallet.repository';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Teacher } from './entities/teacher.entity';
-import { Wallet } from './entities/wallet.entity';
+import { TeacherWallet } from './entities/wallet.entity';
 import { TeacherPhoto } from './entities/teacher-photo.entity';
 import { Role } from '../roles/entities/role.entity';
 import { RoleRepository } from '../roles/repositories/role.repository';
@@ -28,16 +28,19 @@ export const TeacherPhotosRepositoryProvider: Provider = {
 
 export const WalletRepositoryProvider: Provider = {
   provide: Teacher_TYPES.repository.wallet,
-  useClass: WalletRepository,
+  useClass: WalleTRepository,
 };
 @Module({
-  imports: [TypeOrmModule.forFeature([Teacher, Wallet, TeacherPhoto, Role])],
+  imports: [
+    TypeOrmModule.forFeature([Teacher, TeacherWallet, TeacherPhoto, Role]),
+  ],
   controllers: [UsersController],
   providers: [
     TeacherPhotosRepositoryProvider,
     TeacherRepositoryProvider,
     WalletRepositoryProvider,
     TeacherssServiceProvider,
+    WalleTRepository,
     RoleRepository,
   ],
   exports: [
@@ -45,6 +48,7 @@ export const WalletRepositoryProvider: Provider = {
     TeacherRepositoryProvider,
     WalletRepositoryProvider,
     TeacherssServiceProvider,
+    WalleTRepository,
   ],
 })
-export class  TeachersModule {}
+export class TeachersModule {}

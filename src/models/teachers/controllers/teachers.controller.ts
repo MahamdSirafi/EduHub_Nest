@@ -47,6 +47,9 @@ import {
 import { Request } from 'express';
 import { ITeachersService } from '../interfaces/services/teacher.service.interface';
 import { Teacher_TYPES } from '../interfaces/type';
+import { UpdateWalletDto } from '../dtos/wallet.dto';
+import { TeacherWallet } from '../entities/wallet.entity';
+import { WalleTRepository } from '../repositories/wallet.repository';
 
 @ApiTags('teachers')
 @ApiBearerAuth('token')
@@ -59,6 +62,7 @@ import { Teacher_TYPES } from '../interfaces/type';
 export class UsersController implements ICrud<Teacher> {
   constructor(
     @Inject(Teacher_TYPES.service) private teachersService: ITeachersService,
+    private walletRepository: WalleTRepository,
   ) {}
 
   @UseInterceptors(WithDeletedInterceptor)
@@ -87,7 +91,6 @@ export class UsersController implements ICrud<Teacher> {
   }
 
   @ApiOkResponse({ type: Teacher })
-  // @SerializeOptions({ groups: [GROUPS.Teacher] })
   @Roles(ROLE.Teacher)
   @Get('myPhotos')
   async getMyPhotos(@GetUser() user: Teacher) {
@@ -154,5 +157,15 @@ export class UsersController implements ICrud<Teacher> {
   @Post(':id/recover')
   async recover(@Param('id', ParseUUIDPipe) id: string) {
     return this.teachersService.recover(id);
+  }
+
+  @ApiOkResponse({ type: TeacherWallet })
+  @Roles(ROLE.ADMIN)
+  @Patch(':id/wallet/withdraw')
+  async withdraw(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateWalletDto,
+  ) {
+    return this.walletRepository.withdraw(id, dto.cost);
   }
 }

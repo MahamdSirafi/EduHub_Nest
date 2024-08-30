@@ -57,6 +57,8 @@ import { Teacher } from '../../teachers';
 export class CourseController implements ICrud<Course> {
   constructor(private coursesService: CourseService) {}
 
+
+  
   @UseInterceptors(WithDeletedInterceptor)
   @ApiOkResponse({ type: PaginatedResponse<Course> })
   @ApiQuery({

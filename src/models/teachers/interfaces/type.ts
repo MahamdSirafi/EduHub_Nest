@@ -3,6 +3,6 @@ export const Teacher_TYPES = {
   repository: {
     teacher: 'ITeacherRepository',
     teacher_photos: 'ITeacherPhotosRepository',
-    wallet: 'IWalletRepository',
+    wallet: 'IWalletTRepository',
   },
 };

@@ -5,7 +5,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Exclude, Expose } from 'class-transformer';
 
 @Entity('users_wallets')
-export class Wallet extends GlobalEntity {
+export class UserWallet extends GlobalEntity {
   @OneToOne(() => User, (user) => user.wallet)
   @JoinColumn({ name: 'userId', referencedColumnName: 'id' })
   user: User;

@@ -9,5 +9,7 @@ export enum Entities {
   Wallet = 'Wallet',
   Course = 'Course',
   Video = 'Video',
+  Apply = 'Apply',
+  Question = 'Question',
   All = 'all',
 }

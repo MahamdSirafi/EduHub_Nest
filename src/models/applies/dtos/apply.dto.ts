@@ -32,7 +32,5 @@ export class ResultApplyDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
-  @Max(5)
-  @Min(1)
   readonly result: number;
 }

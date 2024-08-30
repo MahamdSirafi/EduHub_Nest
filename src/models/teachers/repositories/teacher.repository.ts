@@ -10,7 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ITeacherRepository } from '../interfaces/repositories/teacher.repository.interface';
 import { ITeacherPhotosRepository } from '../interfaces/repositories/teacher-photos.repository.interface';
 import { Teacher_TYPES } from '../interfaces/type';
-import { IWalletRepository } from '../interfaces/repositories/wallet.repository.interface';
+import { IWalletTeacherRepository } from '../interfaces/repositories/wallet.repository.interface';
 import { BaseAuthRepo } from '../../../common/entities';
 
 @Injectable()
@@ -19,11 +19,12 @@ export class TeacherRepository
   implements ITeacherRepository
 {
   constructor(
-    @InjectRepository(Teacher) private readonly teacherRepo: Repository<Teacher>,
+    @InjectRepository(Teacher)
+    private readonly teacherRepo: Repository<Teacher>,
     @Inject(Teacher_TYPES.repository.teacher_photos)
     private readonly teacherPhotosRepository: ITeacherPhotosRepository,
     @Inject(Teacher_TYPES.repository.wallet)
-    private readonly walletRepository: IWalletRepository,
+    private readonly walletRepository: IWalletTeacherRepository,
   ) {
     super(teacherRepo);
   }
@@ -122,7 +123,9 @@ export class TeacherRepository
   }
 
   async update(teacher: Teacher, dto: UpdateTeacherDto): Promise<Teacher> {
-    teacher.photos.push(await this.teacherPhotosRepository.uploadPhoto(dto.photo));
+    teacher.photos.push(
+      await this.teacherPhotosRepository.uploadPhoto(dto.photo),
+    );
     Object.assign(teacher, { email: dto.email, name: dto.name });
     await this.teacherRepo.save(teacher);
     return this.findOneById(teacher.id);

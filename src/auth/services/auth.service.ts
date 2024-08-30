@@ -109,7 +109,6 @@ export class AuthService implements IAuthController<AuthUserResponse> {
     } else if (payload.entity === User.name) {
       user = await this.userRepository.validate(payload.sub);
     }
-
     if (!user) {
       throw new UnauthorizedException('The user is not here');
     }

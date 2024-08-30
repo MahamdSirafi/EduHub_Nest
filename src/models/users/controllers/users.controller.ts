@@ -28,7 +28,7 @@ import {
   ApiNotFoundResponse,
 } from '@nestjs/swagger';
 
-import { FavoritesDto, UpdateUserDto } from '../dtos';
+import { UpdateUserDto, UpdateWalletDto } from '../dtos';
 import { User } from '../entities/user.entity';
 import { GetUser, Roles, CheckAbilities } from '../../../common/decorators';
 import { GROUPS, ROLE, Entities, Action } from '../../../common/enums';
@@ -47,6 +47,7 @@ import {
 import { Request } from 'express';
 import { IUsersService } from '../interfaces/services/users.service.interface';
 import { USER_TYPES } from '../interfaces/type';
+import { WalletRepository } from '../repositories/wallet.repository';
 
 @ApiTags('users')
 @ApiBearerAuth('token')
@@ -59,6 +60,7 @@ import { USER_TYPES } from '../interfaces/type';
 export class UsersController implements ICrud<User> {
   constructor(
     @Inject(USER_TYPES.service) private usersService: IUsersService,
+    private walletRepository: WalletRepository,
   ) {}
 
   @UseInterceptors(WithDeletedInterceptor)
@@ -121,7 +123,6 @@ export class UsersController implements ICrud<User> {
     return this.usersService.deleteMe(user);
   }
 
-
   @ApiOkResponse({ type: User })
   @SerializeOptions({ groups: [GROUPS.USER] })
   @Get(':id')
@@ -150,10 +151,28 @@ export class UsersController implements ICrud<User> {
 
   @ApiOperation({ summary: 'recover deleted user' })
   @CheckAbilities({ action: Action.Update, subject: Entities.User })
-  @SerializeOptions({ groups: [GROUPS.USER] })
   @HttpCode(HttpStatus.OK)
   @Post(':id/recover')
   async recover(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.recover(id);
+  }
+  
+  @Roles(ROLE.ADMIN)
+  @ApiOkResponse({ type: User })
+  @Patch(':id/wallet/withdraw')
+  async withdraw(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateWalletDto,
+  ) {
+    return this.walletRepository.withdraw(id, dto.cost);
+  }
+  @Roles(ROLE.ADMIN)
+  @ApiOkResponse({ type: User })
+  @Patch(':id/wallet/deposit')
+  async deposit(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateWalletDto,
+  ) {
+    return this.walletRepository.deposit(id, dto.cost);
   }
 }

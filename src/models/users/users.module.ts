@@ -4,7 +4,7 @@ import { UserPhotosRepository } from './repositories/user-photos.repository';
 import { WalletRepository } from './repositories/wallet.repository';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { Wallet } from './entities/wallet.entity';
+import { UserWallet } from './entities/wallet.entity';
 import { UserPhoto } from './entities/user-photo.entity';
 import { Role } from '../roles/entities/role.entity';
 import { RoleRepository } from '../roles/repositories/role.repository';
@@ -31,7 +31,7 @@ export const WalletRepositoryProvider: Provider = {
   useClass: WalletRepository,
 };
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Wallet, UserPhoto, Role])],
+  imports: [TypeOrmModule.forFeature([User, UserWallet, UserPhoto, Role])],
   controllers: [UsersController],
   providers: [
     UserPhotosRepositoryProvider,
@@ -39,12 +39,14 @@ export const WalletRepositoryProvider: Provider = {
     WalletRepositoryProvider,
     UsersServiceProvider,
     RoleRepository,
+    WalletRepository,
   ],
   exports: [
     UserPhotosRepositoryProvider,
     UserRepositoryProvider,
     WalletRepositoryProvider,
     UsersServiceProvider,
+    WalletRepository,
   ],
 })
 export class UsersModule {}

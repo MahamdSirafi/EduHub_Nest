@@ -11,6 +11,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Teacher } from '../../teachers';
 import { GlobalEntity } from '../../../common/entities';
 import { Video } from '../../videos';
+import { Apply } from '../../applies';
+import { Question } from '../../question';
 
 @Entity({ name: 'courses' })
 export class Course extends GlobalEntity {
@@ -28,6 +30,20 @@ export class Course extends GlobalEntity {
     eager: true,
   })
   videos: Video[];
+
+  @Exclude()
+  @OneToMany(() => Apply, (apply) => apply.course, {
+    cascade: true,
+    eager: true,
+  })
+  applies: Apply[];
+
+  @Exclude()
+  @OneToMany(() => Question, (question) => question.course, {
+    cascade: true,
+    eager: true,
+  })
+  questions: Question[];
 
   @ApiProperty()
   @Column()

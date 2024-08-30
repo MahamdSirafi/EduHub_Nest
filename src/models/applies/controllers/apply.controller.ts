@@ -2,7 +2,6 @@ import {
   UseGuards,
   UseInterceptors,
   Controller,
-  SerializeOptions,
   Get,
   Patch,
   Body,
@@ -14,14 +13,13 @@ import {
   Post,
   Query,
   Req,
-  Inject,
-  ForbiddenException,
+  NotFoundException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
   ApiOkResponse,
-  ApiOperation,
   ApiQuery,
   ApiBadRequestResponse,
   ApiForbiddenResponse,
@@ -29,10 +27,8 @@ import {
   ApiNotFoundResponse,
   ApiCreatedResponse,
 } from '@nestjs/swagger';
-
-import { CreateVideoDto, UpdateVideoDto } from '../dtos';
-import { Video } from '../entities/apply.entity';
-import { GetUser, Roles, CheckAbilities } from '../../../common/decorators';
+import { Apply } from '../entities/apply.entity';
+import { GetUser, Roles } from '../../../common/decorators';
 import { ROLE } from '../../../common/enums';
 import { CaslAbilitiesGuard, RolesGuard } from '../../../common/guards';
 import {
@@ -40,17 +36,24 @@ import {
   WithDeletedInterceptor,
 } from '../../../common/interceptors';
 import { PaginatedResponse } from '../../../common/types';
-import { ICrud } from '../../../common/interfaces';
 import {
   bad_req,
   data_not_found,
   denied_error,
 } from '../../../common/constants';
 import { Request } from 'express';
-import { VideoService } from '../services/video.service';
+import { ApplyService } from '../services/apply.service';
 import { CourseService } from '../../courses/services/courser.service';
-import { Teacher } from '../../teachers';
-import { UUID } from 'crypto';
+import {
+  CreateApplyDto,
+  RatingApplyDto,
+  ResultApplyDto,
+} from '../dtos/apply.dto';
+import { User } from '../../users';
+import { DataSource } from 'typeorm';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { WalleTRepository } from '../../teachers/repositories/wallet.repository';
+import { WalletRepository } from '../../users/repositories/wallet.repository';
 
 @ApiTags('applies')
 @ApiBearerAuth('token')
@@ -60,14 +63,17 @@ import { UUID } from 'crypto';
 @UseInterceptors(new LoggingInterceptor())
 @UseGuards(CaslAbilitiesGuard, RolesGuard)
 @Controller({ path: 'applies', version: '1' })
-export class ApplyController implements ICrud<Video> {
+export class ApplyController {
   constructor(
-    private videosService: VideoService,
+    @InjectDataSource() private dataSource: DataSource,
+    private readonly userWalletRepository: WalletRepository,
+    private readonly teacherWalletRepository: WalleTRepository,
+    private applyService: ApplyService,
     private coursesService: CourseService,
   ) {}
   @Roles(ROLE.SUPER_ADMIN)
   @UseInterceptors(WithDeletedInterceptor)
-  @ApiOkResponse({ type: PaginatedResponse<Video> })
+  @ApiOkResponse({ type: PaginatedResponse<Apply> })
   @ApiQuery({
     name: 'page',
     allowEmptyValue: false,
@@ -87,50 +93,87 @@ export class ApplyController implements ICrud<Video> {
     @Req() req: Request & { query: { withDeleted: string } },
   ) {
     const withDeleted = JSON.parse(req.query.withDeleted);
-    return this.videosService.find(page, limit, withDeleted);
+    return this.applyService.find(page, limit, withDeleted);
   }
 
-  // @SerializeOptions({ groups: [GROUPS.ALL_CARS] })
   @Roles(ROLE.Teacher)
-  @ApiOkResponse({ type: Video, isArray: true })
+  @ApiOkResponse({ type: Apply, isArray: true })
   @Get('course/:courseId')
   async findMine(
     @GetUser('id') teacherId: string,
     @Param('courseId', ParseUUIDPipe) courseId: string,
-  ): Promise<Video[]> {
+  ): Promise<Apply[]> {
     console.log(courseId);
-    return this.videosService.findForCourse(courseId);
+    return this.applyService.findForCourse(courseId);
   }
 
-  // @SerializeOptions({ groups: [GROUPS.CAR] })
-  @Roles(ROLE.Teacher)
-  @ApiCreatedResponse({ type: Video })
+  @Roles(ROLE.USER)
+  @ApiOkResponse({ type: Apply, isArray: true })
+  @Get('forUser')
+  async findMineApply(@GetUser('id') userId: string): Promise<Apply[]> {
+    return this.applyService.findForUser(userId);
+  }
+
+  @Roles(ROLE.USER)
+  @ApiCreatedResponse({ type: Apply })
   @Post()
   async create(
-    @Body() dto: CreateVideoDto,
-    @GetUser() teacher: Teacher,
-    @Param('courseId') courseId: string,
-  ): Promise<Video> {
-    const course = await this.coursesService.checkOwner(teacher.id, courseId);
-    return await this.videosService.create(course, dto);
+    @Body() dto: CreateApplyDto,
+    @GetUser() user: User,
+  ): Promise<Apply> {
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const course = await this.coursesService.findOne(dto.courseId);
+      if (!course) throw new NotFoundException('course is not found');
+
+      await this.userWalletRepository.withdraw(user.id, course.price);
+      await this.teacherWalletRepository.deposit(
+        course.teacherId,
+        course.price,
+      );
+      const aplly = await this.applyService.create(user, course, dto);
+      await queryRunner.commitTransaction();
+      return aplly;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException(
+        `Failed to set delivered at: ${error.message}`,
+      );
+    } finally {
+      await queryRunner.release();
+    }
   }
 
-  @ApiOkResponse({ type: Video })
+  @ApiOkResponse({ type: Apply })
   @Get(':id')
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.videosService.findOne(id);
+    return this.applyService.findOne(id);
   }
 
-  @ApiOkResponse({ type: Video })
-  @Roles(ROLE.Teacher)
-  // @CheckAbilities({ action: Action.Update, subject: Entities.Teacher })
-  @Patch(':id')
-  async update(
+  @ApiOkResponse({ type: Apply })
+  @Roles(ROLE.USER)
+  @Patch(':id/rating')
+  async rating(
     @Param('id', ParseUUIDPipe) id: string,
-    @GetUser('id') teacherId: string,
-    @Body() dto: UpdateVideoDto,
+    @GetUser('id') userId: string,
+    @Body() dto: RatingApplyDto,
   ) {
-    return this.videosService.update(id, dto, teacherId);
+    return this.applyService.rating(id, dto, userId);
+  }
+
+  @ApiOkResponse({ type: Apply })
+  @Roles(ROLE.USER)
+  @Patch(':id/setResult')
+  async setResult(
+    @Param('id', ParseUUIDPipe) id: string,
+    @GetUser('id') userId: string,
+    @Body() dto: ResultApplyDto,
+  ) {
+    return this.applyService.setResult(id, dto, userId);
   }
 
   @ApiNoContentResponse()
@@ -141,6 +184,6 @@ export class ApplyController implements ICrud<Video> {
     @Param('id', ParseUUIDPipe) id: string,
     @GetUser('id') teacherId: string,
   ) {
-    return this.videosService.remove(id, teacherId);
+    return this.applyService.remove(id, teacherId);
   }
 }

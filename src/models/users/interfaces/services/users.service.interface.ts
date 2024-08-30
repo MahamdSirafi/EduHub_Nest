@@ -1,5 +1,5 @@
 import { PaginatedResponse } from '../../../../common/types';
-import { FavoritesDto, UpdateUserDto } from '../../dtos';
+import { UpdateUserDto } from '../../dtos';
 import { UserPhoto } from '../../entities/user-photo.entity';
 import { User } from '../../entities/user.entity';
 

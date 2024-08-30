@@ -27,6 +27,8 @@ import { TeachersModule } from './models/teachers/teacher.module';
 import { CoursesModule } from './models/courses/course.module';
 import { AuthTeacherModule } from './auth teacher/auth.module';
 import { VideoModule } from './models/videos/video.module';
+import { ApplyModule } from './models/applies/apply.module';
+import { QuestionModule } from './models/question/question.module';
 
 @Module({
   imports: [
@@ -47,6 +49,8 @@ import { VideoModule } from './models/videos/video.module';
     }),
 
     DevtoolsModule.register({ http: process.env.ENV !== 'production' }),
+    ApplyModule,
+    QuestionModule,
     VideoModule,
     CoursesModule,
     AuthModule,

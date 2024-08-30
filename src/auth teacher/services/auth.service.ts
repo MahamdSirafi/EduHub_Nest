@@ -33,6 +33,9 @@ import { IRoleRepository } from '../../models/roles/interfaces/repositories/role
 import { ITeacherRepository } from '../../models/teachers/interfaces/repositories/teacher.repository.interface';
 import { Teacher } from '../../models/teachers';
 import { Teacher_TYPES } from '../../models/teachers/interfaces/type';
+import { User } from '../../models/users';
+import { IUserRepository } from '../../models/users/interfaces/repositories/user.repository.interface';
+import { USER_TYPES } from '../../models/users/interfaces/type';
 
 @Injectable()
 export class AuthService implements IAuthController<AuthTeacherResponse> {
@@ -40,6 +43,8 @@ export class AuthService implements IAuthController<AuthTeacherResponse> {
     private readonly jwtTokenService: JwtTokenService,
     @Inject(Teacher_TYPES.repository.teacher)
     private readonly teatcherRepository: ITeacherRepository,
+    @Inject(USER_TYPES.repository.user)
+    private readonly userRepository: IUserRepository,
     @Inject(ADMIN_TYPES.repository.admin)
     private readonly adminRepository: IAdminRepository,
     @Inject(ROLE_TYPES.repository)
@@ -65,7 +70,7 @@ export class AuthService implements IAuthController<AuthTeacherResponse> {
   async updateMyPassword(dto: PasswordChangeDto, email: string) {
     const teacher = await this.teatcherRepository.findOneByEmail(email);
 
-    if (!Teacher) throw new NotFoundException(item_not_found(Entities.User));
+    if (!Teacher) throw new NotFoundException(item_not_found(Entities.Teacher));
 
     // 2)check if the passwordConfirm is correct
     if (!(await teacher.verifyHash(teacher.password, dto.passwordCurrent))) {
@@ -111,16 +116,18 @@ export class AuthService implements IAuthController<AuthTeacherResponse> {
   }
 
   async validate(payload: jwtPayload) {
-    let teacher: Teacher | Admin;
+    let teacher: Teacher | Admin | User;
 
     if (payload.entity === Admin.name) {
       teacher = await this.adminRepository.validate(payload.sub);
     } else if (payload.entity === Teacher.name) {
       teacher = await this.teatcherRepository.validate(payload.sub);
+    } else if (payload.entity === User.name) {
+      teacher = await this.userRepository.validate(payload.sub);
     }
 
     if (!teacher) {
-      throw new UnauthorizedException('The user is not here');
+      throw new UnauthorizedException('The teacher is not here');
     }
 
     if (teacher.isPasswordChanged(payload.iat)) {

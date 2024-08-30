@@ -2,7 +2,6 @@ import {
   UseGuards,
   UseInterceptors,
   Controller,
-  SerializeOptions,
   Get,
   Patch,
   Body,
@@ -14,14 +13,12 @@ import {
   Post,
   Query,
   Req,
-  Inject,
   ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
   ApiOkResponse,
-  ApiOperation,
   ApiQuery,
   ApiBadRequestResponse,
   ApiForbiddenResponse,
@@ -30,9 +27,9 @@ import {
   ApiCreatedResponse,
 } from '@nestjs/swagger';
 
-import { CreateVideoDto, UpdateVideoDto } from '../dtos';
-import { Video } from '../entities/video.entity';
-import { GetUser, Roles, CheckAbilities } from '../../../common/decorators';
+import { CreateQuestionDto, UpdateQuestionDto } from '../dtos';
+import { Question } from '../entities/question.entity';
+import { GetUser, Roles } from '../../../common/decorators';
 import { ROLE } from '../../../common/enums';
 import { CaslAbilitiesGuard, RolesGuard } from '../../../common/guards';
 import {
@@ -47,30 +44,30 @@ import {
   denied_error,
 } from '../../../common/constants';
 import { Request } from 'express';
-import { VideoService } from '../services/video.service';
+import { QuestionService } from '../services/question.service';
 import { CourseService } from '../../courses/services/courser.service';
 import { Teacher } from '../../teachers';
 import { User } from '../../users';
 import { ApplyService } from '../../applies/services/apply.service';
 
-@ApiTags('videos')
+@ApiTags('questions')
 @ApiBearerAuth('token')
 @ApiBadRequestResponse({ description: bad_req })
 @ApiForbiddenResponse({ description: denied_error })
 @ApiNotFoundResponse({ description: data_not_found })
 @UseInterceptors(new LoggingInterceptor())
 @UseGuards(CaslAbilitiesGuard, RolesGuard)
-@Controller({ path: 'videos', version: '1' })
-export class VideoController implements ICrud<Video> {
+@Controller({ path: 'questions', version: '1' })
+export class QuestionController implements ICrud<Question> {
   constructor(
-    private videosService: VideoService,
+    private questionService: QuestionService,
     private coursesService: CourseService,
     private applyService: ApplyService,
   ) {}
 
   @Roles(ROLE.SUPER_ADMIN)
   @UseInterceptors(WithDeletedInterceptor)
-  @ApiOkResponse({ type: PaginatedResponse<Video> })
+  @ApiOkResponse({ type: PaginatedResponse<Question> })
   @ApiQuery({
     name: 'page',
     allowEmptyValue: false,
@@ -90,16 +87,16 @@ export class VideoController implements ICrud<Video> {
     @Req() req: Request & { query: { withDeleted: string } },
   ) {
     const withDeleted = JSON.parse(req.query.withDeleted);
-    return this.videosService.find(page, limit, withDeleted);
+    return this.questionService.find(page, limit, withDeleted);
   }
 
   @Roles(ROLE.Teacher, ROLE.USER)
-  @ApiOkResponse({ type: Video, isArray: true })
+  @ApiOkResponse({ type: Question, isArray: true })
   @Get('course/:courseId')
   async findMine(
     @GetUser() user: User,
     @Param('courseId', ParseUUIDPipe) courseId: string,
-  ): Promise<Video[]> {
+  ): Promise<Question[]> {
     const course = await this.coursesService.findOne(courseId);
     if (!course) throw new ForbiddenException("this course isn't found");
     switch (user.role.name) {
@@ -115,38 +112,37 @@ export class VideoController implements ICrud<Video> {
         break;
       }
     }
-    return this.videosService.findForCourse(courseId);
+    return this.questionService.findForCourse(courseId);
   }
 
   // @SerializeOptions({ groups: [GROUPS.CAR] })
   @Roles(ROLE.Teacher)
-  @ApiCreatedResponse({ type: Video })
+  @ApiCreatedResponse({ type: Question })
   @Post()
   async create(
-    @Body() dto: CreateVideoDto,
+    @Body() dto: CreateQuestionDto,
     @GetUser() teacher: Teacher,
     @Param('courseId') courseId: string,
-  ): Promise<Video> {
+  ): Promise<Question> {
     const course = await this.coursesService.checkOwner(teacher.id, courseId);
-    return await this.videosService.create(course, dto);
+    return await this.questionService.create(course, dto);
   }
 
-  @ApiOkResponse({ type: Video })
+  @ApiOkResponse({ type: Question })
   @Get(':id')
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.videosService.findOne(id);
+    return this.questionService.findOne(id);
   }
 
-  @ApiOkResponse({ type: Video })
+  @ApiOkResponse({ type: Question })
   @Roles(ROLE.Teacher)
-  // @CheckAbilities({ action: Action.Update, subject: Entities.Teacher })
   @Patch(':id')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @GetUser('id') teacherId: string,
-    @Body() dto: UpdateVideoDto,
+    @Body() dto: UpdateQuestionDto,
   ) {
-    return this.videosService.update(id, dto, teacherId);
+    return this.questionService.update(id, dto, teacherId);
   }
 
   @ApiNoContentResponse()
@@ -157,6 +153,6 @@ export class VideoController implements ICrud<Video> {
     @Param('id', ParseUUIDPipe) id: string,
     @GetUser('id') teacherId: string,
   ) {
-    return this.videosService.remove(id, teacherId);
+    return this.questionService.remove(id, teacherId);
   }
 }

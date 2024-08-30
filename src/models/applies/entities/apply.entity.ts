@@ -7,6 +7,7 @@ import { User } from '../../users';
 
 @Entity({ name: 'apply' })
 export class Apply extends GlobalEntity {
+  @ApiProperty({ type: () => Course })
   @ManyToOne(() => Course, (course) => course.applies)
   @JoinColumn({ name: 'courseId' })
   course: Course;
@@ -15,6 +16,7 @@ export class Apply extends GlobalEntity {
   @Column()
   courseId: string;
 
+  @ApiProperty({ type: () => User })
   @ManyToOne(() => User, (user) => user.applies)
   @JoinColumn({ name: 'userId' })
   user: User;
@@ -24,14 +26,14 @@ export class Apply extends GlobalEntity {
   userId: string;
 
   @ApiProperty()
-  @Column()
+  @Column({ nullable: true })
   rating: number;
 
   @ApiProperty()
-  @Column()
+  @Column({ nullable: true })
   note: string;
 
   @ApiProperty()
-  @Column()
-  result: string;
+  @Column({ nullable: true })
+  result: number;
 }
